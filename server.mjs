@@ -7,9 +7,11 @@ import { Parser } from 'json2csv';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(express.json());
+
 app.use(cors({
     origin: ['http://localhost:5173', 'https://user-gen-pro.vercel.app'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST'],
     credentials: true
 }));
 
@@ -27,7 +29,6 @@ const regionLocaleMap = {
     bd: fakerNE
 };
 
-
 app.get('/generateData', (req, res) => {
     const { region, seed, pageNumber = 1, batchSize = 20, errors = 0 } = req.query;
 
@@ -42,6 +43,37 @@ app.get('/generateData', (req, res) => {
     const data = generateFakeData(parseInt(batchSize), errors, fakerInstance, parseInt(pageNumber));
     res.json(data);
 });
+
+app.get('/exportCSV', (req, res) => {
+    const { region, seed, pageNumber = 1, batchSize = 20, errors = 0 } = req.query;
+
+    const fakerInstance = regionLocaleMap[region] || faker;
+    const rng = seedrandom(`${seed}-${pageNumber}`);
+    fakerInstance.seed(rng.int32());
+
+
+    const totalRecords = parseInt(pageNumber) * parseInt(batchSize);
+    const data = generateFakeData(totalRecords, errors, fakerInstance, 1);
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(data);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('data.csv');
+    res.send(csv);
+});
+
+app.post('/applyErrors', (req, res) => {
+    const { data, errorCount } = req.body;
+
+    if (!data || !Array.isArray(data)) {
+        return res.status(400).json({ message: "Invalid data provided." });
+    }
+
+    const modifiedData = data.map(record => applyErrors(record, errorCount));
+
+    res.json(modifiedData);
+});
+
 
 
 function generateFakeData(batchSize, errorRate, fakerInstance, pageNumber) {
@@ -64,18 +96,23 @@ function generateFakeData(batchSize, errorRate, fakerInstance, pageNumber) {
     return records;
 }
 
-
 function applyErrors(record, errorRate) {
     const errorTypes = ['delete', 'add', 'swap'];
     const fields = ['name', 'address', 'phone'];
 
 
-    fields.forEach(field => {
-        if (Math.random() < errorRate) {
-            const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
-            record[field] = introduceError(record[field], errorType);
-        }
-    });
+    if (errorRate <= 0) {
+        return record;
+    }
+
+
+    const totalErrors = Math.max(1, Math.round(errorRate));;
+
+    for (let i = 0; i < totalErrors; i++) {
+        const field = fields[Math.floor(Math.random() * fields.length)];
+        const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+        record[field] = introduceError(record[field], errorType);
+    }
 
     return record;
 }
@@ -106,27 +143,6 @@ function introduceError(text, errorType) {
             return text;
     }
 }
-
-
-app.get('/exportCSV', (req, res) => {
-    const { region, seed, pageNumber = 1, batchSize = 20, errors = 0 } = req.query;
-
-    const fakerInstance = regionLocaleMap[region] || faker;
-    const rng = seedrandom(`${seed}-${pageNumber}`);
-    fakerInstance.seed(rng.int32());
-
-    // Generate the full data based on the pageNumber and batchSize
-    const totalRecords = parseInt(pageNumber) * parseInt(batchSize);
-    const data = generateFakeData(totalRecords, errors, fakerInstance, 1); // Start from page 1 to maintain consistency
-
-    const json2csvParser = new Parser();
-    const csv = json2csvParser.parse(data);
-
-    res.header('Content-Type', 'text/csv');
-    res.attachment('data.csv');
-    res.send(csv);
-});
-
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
