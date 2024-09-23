@@ -9,7 +9,7 @@ const PORT = 5000;
 
 app.use(cors({
     // origin: ['http://localhost:5173', 'https://user-gen-pro.vercel.app'],
-    origin: '*',
+    origin: 'http://localhost:5173',
     methods: ['GET'],
     credentials: true
 }));
