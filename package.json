@@ -1,0 +1,22 @@
+{
+  "name": "random-user-server",
+  "version": "1.0.0",
+  "description": "Random User Generator API",
+  "main": "server.mjs",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.mjs",
+    "dev": "npx nodemon server.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@faker-js/faker": "^9.0.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "seedrandom": "^3.0.5"
+  }
+}
