@@ -5,7 +5,7 @@ import cors from 'cors';
 import { Parser } from 'json2csv';
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(cors({
     origin: ['http://localhost:5173', 'https://user-gen-pro.vercel.app'],
